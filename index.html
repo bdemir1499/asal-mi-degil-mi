@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Çarpan Dedektifi (EVET-HAYIR) 🕵️‍♂️</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
+
+        body {
+            font-family: 'Fredoka', sans-serif;
+            margin: 0; padding: 0;
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            overflow-x: hidden; touch-action: manipulation;
+        }
+
+        /* Yaratıcı Bilgileri Panosu */
+        .creator-info {
+            display: flex; flex-direction: column; align-items: center; margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.95); padding: 15px 30px; border-radius: 25px;
+            border: 4px dashed #ff9ff3; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 90%; max-width: 450px;
+        }
+        .creator-name { font-size: 1.6rem; color: #2d3436; font-weight: 700; margin: 0 0 5px 0; }
+        .creator-title { font-size: 1.1rem; color: #636e72; font-weight: 600; margin: 0 0 12px 0; }
+        .instagram-link {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            text-decoration: none; color: #e1306c; font-weight: 700; font-size: 1.2rem;
+            background: white; padding: 8px 20px; border-radius: 25px;
+            border: 3px solid #ff7675; transition: transform 0.2s;
+        }
+        .instagram-link:active { transform: scale(0.95); }
+
+        h1 { color: #5f27cd; font-size: 2.2rem; margin: 0 0 15px 0; text-shadow: 2px 2px 0px #ffeaa7; text-align: center; }
+
+        /* Menü Ekranı */
+        #menuScreen {
+            display: flex; flex-direction: column; align-items: center;
+            background: rgba(255, 255, 255, 0.95); padding: 25px; border-radius: 30px;
+            border: 5px solid #a29bfe; box-shadow: 0 15px 35px rgba(0,0,0,0.2); width: 90%; max-width: 500px;
+        }
+        
+        .menu-btn {
+            background: #1dd1a1; color: white; border: none; padding: 15px 30px;
+            font-size: 1.2rem; font-family: 'Fredoka', sans-serif; font-weight: bold;
+            border-radius: 50px; cursor: pointer; margin: 8px; width: 95%;
+            box-shadow: 0 8px 0 #10ac84; transition: transform 0.1s;
+        }
+        .menu-btn:active { transform: translateY(8px); box-shadow: 0 0 0 transparent; }
+        .menu-btn.purple { background: #a29bfe; box-shadow: 0 8px 0 #6c5ce7; }
+        .menu-btn.blue { background: #48dbfb; box-shadow: 0 8px 0 #0abde3; }
+
+        .input-group { display: none; flex-direction: column; gap: 10px; margin: 10px 0; width: 95%; }
+        .input-group input { padding: 12px; border-radius: 15px; border: 3px solid #ccc; font-size: 1.2rem; font-family: 'Fredoka'; text-align: center; }
+
+        /* Oyun Ekranları */
+        #localGameScreen, #hostGameScreen, #guestGameScreen {
+            display: none; flex-direction: column; align-items: center; width: 100%; max-width: 800px; padding: 10px; box-sizing: border-box;
+        }
+
+        .status-box {
+            background: white; padding: 15px 25px; border-radius: 20px; border: 4px solid #feca57;
+            font-size: 1.5rem; font-weight: bold; color: #d35400; margin-bottom: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1); text-align: center;
+        }
+        .target-number { font-size: 2.5rem; color: #5f27cd; display: block; text-shadow: 2px 2px 0 #ffeaa7;}
+
+        /* Tablo (1-25) */
+        .grid-25 {
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
+            background: rgba(255,255,255,0.7); padding: 15px; border-radius: 20px; border: 5px solid #a29bfe;
+            width: 100%; max-width: 500px; box-sizing: border-box;
+        }
+        .card {
+            background: #ffffff; color: #2d3436; font-size: 1.8rem; font-weight: bold;
+            display: flex; align-items: center; justify-content: center; aspect-ratio: 1/1;
+            border-radius: 12px; border: 3px solid #dfe4ea; box-shadow: 0 5px 0 #ced6e0;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .card:active { transform: translateY(5px); box-shadow: 0 0 0 transparent; }
+        
+        .card.yes { background: #55efc4; color: #2d3436; border-color: #00b894; box-shadow: 0 3px 0 #00b894; pointer-events: none; animation: pop 0.4s; }
+        .card.no { background: #ff7675; color: white; border-color: #d63031; box-shadow: 0 3px 0 #d63031; pointer-events: none; animation: shake 0.4s; }
+        .card.yes::after { content: "\2714"; position: absolute; font-size: 2rem; color: rgba(0,0,0,0.2); }
+        .card.no::after { content: "\2716"; position: absolute; font-size: 2rem; color: rgba(255,255,255,0.3); }
+
+        /* Öğrenci (Guest) Ekranı */
+        .guest-card-display {
+            font-size: 4rem; color: #ff6b6b; font-weight: bold; background: white;
+            padding: 20px 40px; border-radius: 25px; border: 6px solid #ff9f43; margin: 20px 0;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .vote-buttons { display: flex; gap: 15px; width: 100%; justify-content: center;}
+        .vote-btn {
+            flex: 1; padding: 25px; font-size: 2rem; font-weight: bold; font-family: 'Fredoka';
+            border-radius: 20px; border: none; cursor: pointer; color: white; box-shadow: 0 8px 0 rgba(0,0,0,0.2);
+        }
+        .btn-evet { background: #1dd1a1; box-shadow: 0 8px 0 #10ac84; }
+        .btn-hayir { background: #ff6b6b; box-shadow: 0 8px 0 #ee5253; }
+        .vote-btn:active { transform: translateY(8px); box-shadow: 0 0 0 transparent; }
+
+        /* Lider Tablosu (Host) */
+        .leaderboard {
+            width: 100%; max-width: 500px; background: white; border-radius: 15px;
+            border: 4px solid #a29bfe; padding: 10px; margin-top: 15px; display: none;
+        }
+        .player-row { display: flex; justify-content: space-between; padding: 8px; border-bottom: 2px dashed #dfe4ea; font-size: 1.2rem; font-weight: bold;}
+        .p-name { color: #5f27cd; } .p-score { color: #d35400; }
+
+        #confetti { position: fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:90;}
+
+        @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+        @media (max-width: 500px) {
+            .card { font-size: 1.3rem; border-radius: 8px; }
+            .target-number { font-size: 2rem; }
+            .guest-card-display { font-size: 3rem; padding: 15px 30px; }
+            .vote-btn { font-size: 1.5rem; padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="confetti"></canvas>
+
+    <!-- Menü Ekranı -->
+    <div id="menuScreen">
+        <div class="creator-info">
+            <h2 class="creator-name">Bekir Demirel</h2>
+            <p class="creator-title">Matematik Öğretmeni</p>
+            <a href="https://instagram.com/matejital_mt25" target="_blank" class="instagram-link">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                </svg>
+                @matejital_mt25
+            </a>
+        </div>
+        
+        <h1>Çarpan Dedektifi 🕵️‍♂️</h1>
+        
+        <button class="menu-btn" onclick="startLocalGame()">🖱️ Akıllı Tahtada Çöz</button>
+        
+        <button class="menu-btn purple" onclick="showInput('host')">📡 Sınıfça Bağlan (Host/Tahta)</button>
+        <div class="input-group" id="hostGroup">
+            <input type="text" id="hostRoom" placeholder="Oda Adı Belirle (Örn: sinif6a)">
+            <button class="menu-btn purple" onclick="createNetworkGame()">Odayı Kur</button>
+        </div>
+
+        <button class="menu-btn blue" onclick="showInput('guest')">📱 Odaya Katıl (Öğrenci)</button>
+        <div class="input-group" id="guestGroup">
+            <input type="text" id="guestRoom" placeholder="Öğretmeninin Oda Adı">
+            <input type="text" id="guestName" placeholder="Adın Ne?">
+            <button class="menu-btn blue" onclick="joinNetworkGame()">Sınıfa Gir</button>
+        </div>
+        <p id="connStatus" style="color:#d63031; font-weight:bold; margin-top:10px;"></p>
+    </div>
+
+    <!-- 1. MOD: Akıllı Tahta (Yerel) Ekranı -->
+    <div id="localGameScreen">
+        <div class="status-box">
+            Aranan Hedef Sayı:
+            <span class="target-number" id="localTarget">?</span>
+            <span style="font-size:1rem; color:#57606f;" id="localHint">Tüm bölenlerini (çarpanlarını) bul!</span>
+        </div>
+        <div class="grid-25" id="localGrid"></div>
+        <button class="menu-btn blue" onclick="nextLocalRound()" style="margin-top:20px; display:none;" id="localNextBtn">Sıradaki Sayıya Geç ➡️</button>
+    </div>
+
+    <!-- 2. MOD: Host (Öğretmen Tahtası) Ekranı -->
+    <div id="hostGameScreen">
+        <div class="status-box">
+            Sınıfa Sorulan Hedef Sayı:
+            <span class="target-number" id="hostTarget">Bekleniyor...</span>
+            <span style="font-size:1rem; color:#57606f;" id="hostStatus">Öğrencilerin bağlanması bekleniyor.</span>
+        </div>
+        <button class="menu-btn" onclick="startHostRound()" id="hostStartBtn">Soru Gönder 🚀</button>
+        
+        <div class="leaderboard" id="leaderboard">
+            <h3 style="text-align:center; color:#2d3436; margin:5px 0;">Öğrenci Puanları</h3>
+            <div id="playerList"></div>
+        </div>
+    </div>
+
+    <!-- 3. MOD: Guest (Öğrenci Tablet) Ekranı -->
+    <div id="guestGameScreen">
+        <div class="status-box" style="font-size: 1.2rem;">
+            Öğretmenin Sorusu: <br>
+            <span class="target-number" id="guestTarget">?</span>
+            bu sayıya kalansız bölünür mü?
+        </div>
+        
+        <div style="font-size: 1.2rem; font-weight:bold; color:#2d3436;">Senin Kartın:</div>
+        <div class="guest-card-display" id="guestCardNum">?</div>
+        
+        <div class="vote-buttons">
+            <button class="vote-btn btn-evet" onclick="sendVote(true)">EVET</button>
+            <button class="vote-btn btn-hayir" onclick="sendVote(false)">HAYIR</button>
+        </div>
+        <p id="guestFeedback" style="font-weight:bold; font-size:1.5rem; margin-top:20px;"></p>
+    </div>
+
+    <script>
+        // --- SES MOTORU ---
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx;
+        function playSound(type) {
+            if (!audioCtx) audioCtx = new AudioContext();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            if (type === 'pop') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(600, now); osc.frequency.exponentialRampToValueAtTime(900, now+0.1);
+                gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now+0.1);
+                osc.start(now); osc.stop(now+0.1);
+            } else if (type === 'correct') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(600, now); osc.frequency.setValueAtTime(1000, now+0.1);
+                gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now+0.2);
+                osc.start(now); osc.stop(now+0.2);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(250, now); osc.frequency.linearRampToValueAtTime(150, now+0.3);
+                gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now+0.3);
+                osc.start(now); osc.stop(now+0.3);
+            } else if (type === 'tada') {
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+                    const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+                    o.type = 'sine'; o.connect(g); g.connect(audioCtx.destination);
+                    o.frequency.value = freq; g.gain.setValueAtTime(0, now+i*0.1);
+                    g.gain.linearRampToValueAtTime(0.3, now+i*0.1+0.05); g.gain.exponentialRampToValueAtTime(0.01, now+i*0.1+0.5);
+                    o.start(now+i*0.1); o.stop(now+i*0.1+0.5);
+                });
+            }
+        }
+
+        // --- GÜÇLÜ AĞ ALTYAPISI (TURN SUNUCULU) ---
+        const peerConfig = {
+            config: {
+                'iceServers': [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' }
+                ]
+            }
+        };
+        function getRoomId(name) { 
+            let s = name.toLowerCase().replace(/[^a-z0-9]/g, ''); return `carpan_${s}`; 
+        }
+
+        let peer = null; 
+        let connections = []; // Host için çoklu bağlantı listesi
+        let hostConn = null; // Guest için tek bağlantı
+        let gameState = { mode: '', target: 0, players: {} };
+
+        function showInput(type) {
+            playSound('pop');
+            document.getElementById('hostGroup').style.display = type === 'host' ? 'flex' : 'none';
+            document.getElementById('guestGroup').style.display = type === 'guest' ? 'flex' : 'none';
+        }
+
+        function updateStatusMsg(msg, color) {
+            document.getElementById('connStatus').innerText = msg;
+            document.getElementById('connStatus').style.color = color;
+        }
+
+        // --- MOD 1: AKILLI TAHTA (YEREL) MANTIĞI ---
+        let localDivisors = [];
+        let localFound = 0;
+
+        function startLocalGame() {
+            playSound('pop');
+            document.getElementById('menuScreen').style.display = 'none';
+            document.getElementById('localGameScreen').style.display = 'flex';
+            nextLocalRound();
+        }
+
+        function nextLocalRound() {
+            clearConfetti();
+            document.getElementById('localNextBtn').style.display = 'none';
+            let grid = document.getElementById('localGrid');
+            grid.innerHTML = '';
+            
+            // 1-25 arası rastgele hedef seç (asal olmasın ki zevkli olsun)
+            const nonPrimes = [4,6,8,9,10,12,14,15,16,18,20,21,22,24,25];
+            gameState.target = nonPrimes[Math.floor(Math.random() * nonPrimes.length)];
+            document.getElementById('localTarget').innerText = gameState.target;
+            
+            localDivisors = [];
+            for(let i=1; i<=25; i++) { if(gameState.target % i === 0) localDivisors.push(i); }
+            localFound = 0;
+            document.getElementById('localHint').innerText = `Bulunacak ${localDivisors.length} çarpan var!`;
+
+            for(let i=1; i<=25; i++) {
+                let card = document.createElement('div');
+                card.className = 'card'; card.innerText = i;
+                card.onclick = () => handleLocalClick(card, i);
+                grid.appendChild(card);
+            }
+        }
+
+        function handleLocalClick(card, num) {
+            if(card.classList.contains('yes') || card.classList.contains('no')) return;
+
+            if(gameState.target % num === 0) {
+                playSound('correct');
+                card.classList.add('yes');
+                localFound++;
+                document.getElementById('localHint').innerText = `Kalan Çarpan: ${localDivisors.length - localFound}`;
+                if(localFound === localDivisors.length) {
+                    playSound('tada'); fireConfetti();
+                    document.getElementById('localHint').innerText = "Tebrikler! Hepsini Buldun 🎉";
+                    document.getElementById('localNextBtn').style.display = 'block';
+                }
+            } else {
+                playSound('wrong');
+                card.classList.add('no');
+            }
+        }
+
+        // --- MOD 2: MULTIPLAYER HOST (ÖĞRETMEN) MANTIĞI ---
+        let availableCards = Array.from({length: 25}, (_, i) => i + 1);
+
+        function createNetworkGame() {
+            playSound('pop');
+            const roomName = document.getElementById('hostRoom').value;
+            if(!roomName) return alert("Oda adı girin!");
+            
+            updateStatusMsg("Oda açılıyor...", "#d35400");
+            peer = new Peer(getRoomId(roomName), peerConfig);
+            
+            peer.on('open', () => {
+                document.getElementById('menuScreen').style.display = 'none';
+                document.getElementById('hostGameScreen').style.display = 'flex';
+                document.getElementById('leaderboard').style.display = 'block';
+                availableCards = Array.from({length: 25}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
+            });
+
+            peer.on('connection', (conn) => {
+                connections.push(conn);
+                conn.on('data', (data) => {
+                    if(data.type === 'JOIN') {
+                        let assignedCard = availableCards.length > 0 ? availableCards.pop() : Math.floor(Math.random()*25)+1;
+                        gameState.players[conn.peer] = { name: data.name, card: assignedCard, score: 0 };
+                        conn.send({ type: 'ASSIGN_CARD', card: assignedCard });
+                        updateLeaderboard();
+                        document.getElementById('hostStatus').innerText = `${Object.keys(gameState.players).length} Öğrenci Bağlandı.`;
+                    }
+                    else if(data.type === 'VOTE') {
+                        handleGuestVote(conn.peer, data.answer);
+                    }
+                });
+            });
+        }
+
+        function startHostRound() {
+            playSound('pop');
+            gameState.target = Math.floor(Math.random() * 25) + 1;
+            document.getElementById('hostTarget').innerText = gameState.target;
+            document.getElementById('hostStatus').innerText = "Cevaplar bekleniyor...";
+            
+            connections.forEach(conn => {
+                conn.send({ type: 'NEW_ROUND', target: gameState.target });
+            });
+        }
+
+        function handleGuestVote(peerId, studentSaidYes) {
+            let player = gameState.players[peerId];
+            let isDivisor = (gameState.target % player.card === 0);
+            
+            if(studentSaidYes === isDivisor) {
+                player.score += 10;
+                connections.find(c => c.peer === peerId).send({type: 'RESULT', correct: true});
+            } else {
+                connections.find(c => c.peer === peerId).send({type: 'RESULT', correct: false});
+            }
+            updateLeaderboard();
+        }
+
+        function updateLeaderboard() {
+            let list = document.getElementById('playerList');
+            list.innerHTML = '';
+            let sorted = Object.values(gameState.players).sort((a,b) => b.score - a.score);
+            sorted.forEach(p => {
+                list.innerHTML += `<div class="player-row"><span class="p-name">${p.name} (Kart:${p.card})</span> <span class="p-score">${p.score} Puan</span></div>`;
+            });
+        }
+
+        // --- MOD 3: MULTIPLAYER GUEST (ÖĞRENCİ) MANTIĞI ---
+        function joinNetworkGame() {
+            playSound('pop');
+            const roomName = document.getElementById('guestRoom').value;
+            const guestName = document.getElementById('guestName').value;
+            if(!roomName || !guestName) return alert("Oda adı ve İsminizi girin!");
+            
+            updateStatusMsg("Sınıfa bağlanılıyor...", "#0abde3");
+            peer = new Peer(undefined, peerConfig);
+
+            peer.on('open', () => {
+                hostConn = peer.connect(getRoomId(roomName), { reliable: true });
+                
+                hostConn.on('open', () => {
+                    document.getElementById('menuScreen').style.display = 'none';
+                    document.getElementById('guestGameScreen').style.display = 'flex';
+                    hostConn.send({ type: 'JOIN', name: guestName });
+                });
+
+                hostConn.on('data', (data) => {
+                    if(data.type === 'ASSIGN_CARD') {
+                        document.getElementById('guestCardNum').innerText = data.card;
+                    } else if (data.type === 'NEW_ROUND') {
+                        document.getElementById('guestTarget').innerText = data.target;
+                        document.getElementById('guestFeedback').innerText = "";
+                        document.querySelectorAll('.vote-btn').forEach(b => b.style.opacity = "1");
+                        playSound('pop');
+                    } else if (data.type === 'RESULT') {
+                        let fb = document.getElementById('guestFeedback');
+                        if(data.correct) { playSound('correct'); fb.innerText = "✅ Doğru Bildin! +10 Puan"; fb.style.color = "#1dd1a1"; fireConfetti();}
+                        else { playSound('wrong'); fb.innerText = "❌ Yanlış Cevap!"; fb.style.color = "#ff6b6b"; }
+                    }
+                });
+            });
+        }
+
+        function sendVote(answer) {
+            playSound('click');
+            document.querySelectorAll('.vote-btn').forEach(b => b.style.opacity = "0.5");
+            document.getElementById('guestFeedback').innerText = "Cevap Gönderildi, tahtaya bak...";
+            document.getElementById('guestFeedback').style.color = "#f39c12";
+            hostConn.send({ type: 'VOTE', answer: answer });
+        }
+
+        // --- KONFETİ MOTORU ---
+        let particles = []; const canvas = document.getElementById('confetti'); const ctx = canvas.getContext('2d'); let animationTimer;
+        function fireConfetti() {
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            for(let i=0; i<100; i++) particles.push({ x: canvas.width/2, y: canvas.height/2, r: Math.random()*8+3, dx: Math.random()*15-7.5, dy: Math.random()*15-10, color: ['#ff9ff3', '#feca57', '#48dbfb', '#1dd1a1', '#ff6b6b'][Math.floor(Math.random()*5)] });
+            animateConfetti();
+        }
+        function animateConfetti() {
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            particles.forEach(p => { p.x += p.dx; p.y += p.dy; p.dy += 0.3; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fillStyle = p.color; ctx.fill(); });
+            animationTimer = requestAnimationFrame(animateConfetti);
+        }
+        function clearConfetti() { cancelAnimationFrame(animationTimer); ctx.clearRect(0,0,canvas.width,canvas.height); particles = []; }
+
+    </script>
+</body>
+</html>
