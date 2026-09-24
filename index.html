@@ -55,6 +55,13 @@
         .input-group { display: none; flex-direction: column; gap: 10px; margin: 10px 0; width: 95%; }
         .input-group input { padding: 12px; border-radius: 15px; border: 3px solid #ccc; font-size: 1.2rem; font-family: 'Fredoka'; text-align: center; }
 
+        /* KVKK Uyarı Kutusu */
+        .kvkk-warning {
+            background: #ffeaa7; color: #d35400; padding: 10px 15px; border-radius: 12px;
+            border: 2px dashed #fdcb6e; font-size: 0.95rem; font-weight: 600; text-align: center;
+            line-height: 1.3; margin-bottom: 5px;
+        }
+
         /* Oyun Ekranları */
         #localGameScreen, #hostGameScreen, #guestGameScreen {
             display: none; flex-direction: column; align-items: center; width: 100%; max-width: 800px; padding: 10px; box-sizing: border-box;
@@ -155,7 +162,11 @@
         <button class="menu-btn blue" onclick="showInput('guest')">📱 Odaya Katıl (Öğrenci)</button>
         <div class="input-group" id="guestGroup">
             <input type="text" id="guestRoom" placeholder="Öğretmeninin Oda Adı">
-            <input type="text" id="guestName" placeholder="Adın Ne?">
+            <!-- KVKK Uyarısı Eklendi -->
+            <div class="kvkk-warning">
+                ⚠️ Güvenliğin için soyadını yazma! Sadece adını veya eğlenceli bir takma ad (Örn: Şimşek) kullan.
+            </div>
+            <input type="text" id="guestName" placeholder="Adın veya Takma Adın">
             <button class="menu-btn blue" onclick="joinNetworkGame()">Sınıfa Gir</button>
         </div>
         <p id="connStatus" style="color:#d63031; font-weight:bold; margin-top:10px;"></p>
